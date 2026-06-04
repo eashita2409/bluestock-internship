@@ -167,23 +167,44 @@ if conn:
                     --sidebar-accent: #38bdf8;
                     --sidebar-accent-bg: rgba(56, 189, 248, 0.15);
                     --sidebar-hover-bg: rgba(56, 189, 248, 0.05);
-                    
+
                     --card-bg: linear-gradient(135deg, #0f172a 0%, #020617 100%);
-                    --card-border: rgba(56, 189, 248, 0.3);
-                    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+                    --card-border: rgba(56, 189, 248, 0.30);
+                    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.50);
                     --card-value-color: #38bdf8;
                     --card-label-color: #94a3b8;
-                    
+
                     --tab-bg: #0f172a;
                     --tab-border: #1e293b;
+                    --tab-text: #94a3b8;
                     --tab-hover-bg: #1e293b;
                     --tab-selected-bg: #0284c7;
                     --tab-selected-color: #ffffff;
-                    --tab-selected-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
-                    
+                    --tab-selected-shadow: 0 4px 12px rgba(2, 132, 199, 0.40);
+
                     --body-bg: #0b0f19;
                     --body-text: #e2e8f0;
+                    --body-text-2: #cbd5e1;
                     --heading-color: #f8fafc;
+                    --divider-color: #1e293b;
+
+                    --metric-value: #e2e8f0;
+                    --metric-label: #94a3b8;
+                    --metric-delta-positive: #4ade80;
+                    --metric-delta-negative: #f87171;
+                }
+                /* Dark mode body text overrides */
+                .stApp {
+                    background-color: #0b0f19 !important;
+                    color: #e2e8f0 !important;
+                }
+                .stApp p, .stApp span, .stApp label, .stApp div, .stApp li {
+                    color: #e2e8f0 !important;
+                }
+                [data-testid="stMarkdownContainer"] p,
+                [data-testid="stMarkdownContainer"] li,
+                [data-testid="stMarkdownContainer"] span {
+                    color: #cbd5e1 !important;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -196,61 +217,166 @@ if conn:
                     --sidebar-text: #0f172a;
                     --sidebar-text-secondary: #475569;
                     --sidebar-accent: #1a73e8;
-                    --sidebar-accent-bg: rgba(26, 115, 232, 0.08);
-                    --sidebar-hover-bg: rgba(26, 115, 232, 0.04);
-                    
-                    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,244,248,0.95) 100%);
-                    --card-border: rgba(26, 115, 232, 0.15);
-                    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+                    --sidebar-accent-bg: rgba(26, 115, 232, 0.10);
+                    --sidebar-hover-bg: rgba(26, 115, 232, 0.05);
+
+                    --card-bg: #ffffff;
+                    --card-border: #bfdbfe;
+                    --card-shadow: 0 4px 20px 0 rgba(15, 23, 42, 0.10);
                     --card-value-color: #1a73e8;
-                    --card-label-color: #5f6368;
-                    
-                    --tab-bg: #f1f3f4;
-                    --tab-border: #dadce0;
-                    --tab-hover-bg: #e8eaed;
+                    --card-label-color: #334155;
+
+                    --tab-bg: #f1f5f9;
+                    --tab-border: #cbd5e1;
+                    --tab-text: #475569;
+                    --tab-hover-bg: #e2e8f0;
                     --tab-selected-bg: #1a73e8;
                     --tab-selected-color: #ffffff;
-                    --tab-selected-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
-                    
-                    --body-bg: #ffffff;
-                    --body-text: #1e293b;
+                    --tab-selected-shadow: 0 4px 12px rgba(26, 115, 232, 0.30);
+
+                    --body-bg: #f8fafc;
+                    --body-text: #0f172a;
+                    --body-text-2: #334155;
                     --heading-color: #0f172a;
+                    --divider-color: #e2e8f0;
+
+                    --metric-value: #0f172a;
+                    --metric-label: #475569;
+                    --metric-delta-positive: #16a34a;
+                    --metric-delta-negative: #dc2626;
                 }
+                /* Light mode explicit body overrides */
+                .stApp {
+                    background-color: #f8fafc !important;
+                    color: #0f172a !important;
+                }
+                .stApp p, .stApp span, .stApp label, .stApp div, .stApp li {
+                    color: #0f172a !important;
+                }
+                [data-testid="stMarkdownContainer"] p,
+                [data-testid="stMarkdownContainer"] li,
+                [data-testid="stMarkdownContainer"] span {
+                    color: #334155 !important;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    color: #0f172a !important;
+                }
+                /* st.metric explicit override */
+                [data-testid="stMetricValue"] > div {
+                    color: #0f172a !important;
+                    font-weight: 700 !important;
+                }
+                [data-testid="stMetricLabel"] > div {
+                    color: #475569 !important;
+                }
+                /* Selectbox main area */
+                .main div[data-baseweb="select"] [data-testid="stSelectboxVal"],
+                .main div[data-baseweb="select"] input {
+                    color: #0f172a !important;
+                }
+                /* Streamlit widget labels in main content */
+                .stSelectbox label, .stSlider label, .stNumberInput label,
+                .stRadio label, .stMultiSelect label, .stCheckbox label {
+                    color: #0f172a !important;
+                    font-weight: 500 !important;
+                }
+                /* Dataframe text */
+                [data-testid="stDataFrame"] th,
+                [data-testid="stDataFrame"] td { color: #0f172a !important; }
                 </style>
             """, unsafe_allow_html=True)
-            
+
     inject_theme(theme_choice)
 
+    # ---- LIGHT_FONT / DARK_FONT constants for Plotly ----
+    LIGHT_FONT_COLOR  = "#0f172a"
+    LIGHT_AXIS_COLOR  = "#475569"
+    LIGHT_GRID_COLOR  = "#e2e8f0"
+    LIGHT_PAPER_BG    = "#ffffff"
+    LIGHT_PLOT_BG     = "#ffffff"
+    LIGHT_HOVER_BG    = "#f8fafc"
+
+    DARK_FONT_COLOR   = "#e2e8f0"
+    DARK_AXIS_COLOR   = "#94a3b8"
+    DARK_GRID_COLOR   = "#1e293b"
+    DARK_PAPER_BG     = "#0b0f19"
+    DARK_PLOT_BG      = "#0b0f19"
+    DARK_HOVER_BG     = "#0f172a"
+
     def apply_theme_to_plotly(fig, choice):
-        """Dynamically updates Plotly figures to match the selected theme style."""
-        if not fig:
+        """Comprehensively patches ALL Plotly figure text/color properties to match the active theme."""
+        if fig is None:
             return fig
-        if choice == "Dark Neon Theme":
-            fig.update_layout(
-                template="plotly_dark",
-                paper_bgcolor="#0b0f19",
-                plot_bgcolor="#0b0f19",
-                font=dict(color="#e2e8f0", family="Outfit"),
-                xaxis=dict(gridcolor="#1e293b", zerolinecolor="#1e293b"),
-                yaxis=dict(gridcolor="#1e293b", zerolinecolor="#1e293b")
-            )
-            if hasattr(fig.layout, 'coloraxis') and fig.layout.coloraxis:
-                if fig.layout.coloraxis.colorbar:
-                    fig.layout.coloraxis.colorbar.tickfont.color = "#e2e8f0"
-                    fig.layout.coloraxis.colorbar.title.font.color = "#e2e8f0"
-        else:
-            fig.update_layout(
-                template="plotly_white",
-                paper_bgcolor="#ffffff",
-                plot_bgcolor="#ffffff",
-                font=dict(color="#0f172a", family="Outfit"),
-                xaxis=dict(gridcolor="#f1f5f9", zerolinecolor="#f1f5f9"),
-                yaxis=dict(gridcolor="#f1f5f9", zerolinecolor="#f1f5f9")
-            )
+
+        is_dark = (choice == "Dark Neon Theme")
+
+        fc    = DARK_FONT_COLOR  if is_dark else LIGHT_FONT_COLOR
+        ac    = DARK_AXIS_COLOR  if is_dark else LIGHT_AXIS_COLOR
+        gc    = DARK_GRID_COLOR  if is_dark else LIGHT_GRID_COLOR
+        pb    = DARK_PAPER_BG   if is_dark else LIGHT_PAPER_BG
+        plb   = DARK_PLOT_BG    if is_dark else LIGHT_PLOT_BG
+        hvb   = DARK_HOVER_BG   if is_dark else LIGHT_HOVER_BG
+        tmpl  = "plotly_dark"   if is_dark else "plotly_white"
+
+        axis_style = dict(
+            color=ac,
+            tickfont=dict(color=ac, family="Outfit", size=12),
+            title=dict(font=dict(color=fc, family="Outfit", size=13)),
+            gridcolor=gc,
+            zerolinecolor=gc,
+            linecolor=gc,
+        )
+
+        fig.update_layout(
+            template=tmpl,
+            paper_bgcolor=pb,
+            plot_bgcolor=plb,
+            font=dict(color=fc, family="Outfit", size=13),
+            title=dict(font=dict(color=fc, family="Outfit", size=16, weight="bold")),
+            legend=dict(
+                font=dict(color=fc, family="Outfit", size=12),
+                bgcolor=pb,
+                bordercolor=gc,
+            ),
+            hoverlabel=dict(
+                bgcolor=hvb,
+                font=dict(color=fc, family="Outfit", size=12),
+                bordercolor=gc,
+            ),
+        )
+
+        # Patch every xaxis / yaxis on the figure (handles subplots & dual-axis)
+        for ax_name in [k for k in fig.layout._props if k.startswith(("xaxis", "yaxis"))]:
+            fig.layout[ax_name].update(**axis_style)
+
+        # If no explicit axis keys exist yet, set xaxis/yaxis directly
+        fig.update_xaxes(**axis_style)
+        fig.update_yaxes(**axis_style)
+
+        # Colorbar / coloraxis
+        try:
+            if fig.layout.coloraxis and fig.layout.coloraxis.colorbar:
+                fig.layout.coloraxis.colorbar.tickfont  = dict(color=fc, family="Outfit")
+                fig.layout.coloraxis.colorbar.title     = dict(font=dict(color=fc, family="Outfit"))
+        except Exception:
+            pass
+
+        # Annotations (if any)
+        for ann in fig.layout.annotations:
+            ann.font = dict(color=fc, family="Outfit")
+
+        # Per-trace font patches
+        for trace in fig.data:
+            try:
+                if hasattr(trace, "textfont"):
+                    trace.textfont = dict(color=fc)
+            except Exception:
+                pass
+
         return fig
 
     def render_chart(fig):
-        apply_theme_to_plotly(fig, theme_choice)
+        fig = apply_theme_to_plotly(fig, theme_choice)
         st.plotly_chart(fig, use_container_width=True)
 
     # Page Select

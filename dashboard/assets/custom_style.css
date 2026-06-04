@@ -1,64 +1,244 @@
 /* Custom CSS for Bluestock Mutual Fund Analytics Streamlit Dashboard */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap');
 
+/* ============================================================
+   CSS DESIGN TOKEN SYSTEM — Light Theme Defaults
+   ============================================================ */
 :root {
-    /* Default is Light Theme */
-    --sidebar-bg: #ffffff;
-    --sidebar-border: #cbd5e1;
-    --sidebar-text: #0f172a;
-    --sidebar-text-secondary: #475569;
-    --sidebar-accent: #1a73e8;
-    --sidebar-accent-bg: rgba(26, 115, 232, 0.08);
-    --sidebar-hover-bg: rgba(26, 115, 232, 0.04);
-    
-    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,244,248,0.95) 100%);
-    --card-border: rgba(26, 115, 232, 0.15);
-    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
-    --card-value-color: #1a73e8;
-    --card-label-color: #5f6368;
-    
-    --tab-bg: #f1f3f4;
-    --tab-border: #dadce0;
-    --tab-hover-bg: #e8eaed;
-    --tab-selected-bg: #1a73e8;
+    /* Sidebar palette */
+    --sidebar-bg:              #ffffff;
+    --sidebar-border:          #cbd5e1;
+    --sidebar-text:            #0f172a;
+    --sidebar-text-secondary:  #475569;
+    --sidebar-accent:          #1a73e8;
+    --sidebar-accent-bg:       rgba(26, 115, 232, 0.10);
+    --sidebar-hover-bg:        rgba(26, 115, 232, 0.05);
+
+    /* KPI Cards */
+    --card-bg:           #ffffff;
+    --card-border:       #dbeafe;
+    --card-shadow:       0 4px 20px 0 rgba(15, 23, 42, 0.08);
+    --card-value-color:  #1a73e8;
+    --card-label-color:  #334155;
+
+    /* Tabs */
+    --tab-bg:             #f1f5f9;
+    --tab-border:         #cbd5e1;
+    --tab-text:           #475569;
+    --tab-hover-bg:       #e2e8f0;
+    --tab-selected-bg:    #1a73e8;
     --tab-selected-color: #ffffff;
-    --tab-selected-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
-    
-    --body-bg: #ffffff;
-    --body-text: #1e293b;
+    --tab-selected-shadow: 0 4px 12px rgba(26, 115, 232, 0.30);
+
+    /* Main body */
+    --body-bg:       #f8fafc;
+    --body-text:     #0f172a;
+    --body-text-2:   #334155;
     --heading-color: #0f172a;
+    --divider-color: #e2e8f0;
+
+    /* Metric colours */
+    --metric-value:  #0f172a;
+    --metric-label:  #475569;
+    --metric-delta-positive: #16a34a;
+    --metric-delta-negative: #dc2626;
 }
 
+/* ============================================================
+   GLOBAL FONT + RESET
+   ============================================================ */
 html, body, [class*="css"] {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Outfit', sans-serif !important;
 }
 
-/* Animations */
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translate3d(0, 20px, 0);
-    }
-    to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-    }
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
+.animate-fade-in { animation: fadeInUp 0.5s ease-out; }
 
-.animate-fade-in {
-    animation: fadeInUp 0.5s ease-out;
-}
-
+/* ============================================================
+   MAIN APP BACKGROUND & GLOBAL TEXT
+   ============================================================ */
 .stApp {
     background-color: var(--body-bg) !important;
     color: var(--body-text) !important;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    color: var(--heading-color) !important;
+/* Force ALL paragraph / span / label text in the main app */
+.stApp p,
+.stApp span,
+.stApp label,
+.stApp div,
+.stApp li,
+.stApp small {
+    color: var(--body-text) !important;
 }
 
-/* Sidebar styling */
+/* Headings */
+h1, h2, h3, h4, h5, h6,
+.stApp h1, .stApp h2, .stApp h3,
+.stApp h4, .stApp h5, .stApp h6 {
+    color: var(--heading-color) !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* Markdown text blocks inside the main content */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] span {
+    color: var(--body-text-2) !important;
+}
+
+/* Dividers */
+hr, [data-testid="stDivider"] {
+    border-color: var(--divider-color) !important;
+}
+
+/* ============================================================
+   st.metric — FORCE READABLE COLORS
+   ============================================================ */
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] > div,
+[data-testid="stMetricValue"] label {
+    color: var(--metric-value) !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] > div,
+[data-testid="stMetricLabel"] label {
+    color: var(--metric-label) !important;
+    font-weight: 500 !important;
+}
+
+[data-testid="stMetricDelta"] > div {
+    font-weight: 600 !important;
+}
+
+/* ============================================================
+   DATAFRAME / TABLE
+   ============================================================ */
+[data-testid="stDataFrame"] th,
+[data-testid="stDataFrame"] td {
+    color: var(--body-text) !important;
+}
+
+/* ============================================================
+   INPUT WIDGETS (sliders, number inputs, selectbox in main area)
+   ============================================================ */
+.stSelectbox label,
+.stSlider label,
+.stNumberInput label,
+.stRadio label,
+.stMultiSelect label,
+.stCheckbox label {
+    color: var(--body-text) !important;
+    font-weight: 500 !important;
+}
+
+/* Selectbox value text (main content area) */
+.main div[data-baseweb="select"] [data-testid="stSelectboxVal"],
+.main div[data-baseweb="select"] input {
+    color: var(--body-text) !important;
+}
+
+/* ============================================================
+   DOWNLOAD BUTTON
+   ============================================================ */
+.stDownloadButton button {
+    color: #ffffff !important;
+    background-color: var(--sidebar-accent) !important;
+    border: none !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+}
+.stDownloadButton button:hover {
+    background-color: #1557b0 !important;
+    box-shadow: 0 4px 12px rgba(26,115,232,0.30) !important;
+}
+
+/* ============================================================
+   KPI CARDS — Solid, Readable, Professional
+   ============================================================ */
+.kpi-card {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    box-shadow: var(--card-shadow) !important;
+    text-align: center !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    margin-bottom: 20px !important;
+    animation: fadeInUp 0.5s ease-out !important;
+    /* NO backdrop-filter in light mode — causes washed out effect */
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 36px 0 rgba(26, 115, 232, 0.15) !important;
+    border-color: var(--sidebar-accent) !important;
+}
+
+.kpi-value {
+    font-size: 2.25rem !important;
+    font-weight: 700 !important;
+    color: var(--card-value-color) !important;
+    margin: 5px 0 !important;
+    letter-spacing: -0.5px !important;
+    opacity: 1 !important;
+}
+
+.kpi-label {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: var(--card-label-color) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    opacity: 1 !important;
+}
+
+.kpi-icon {
+    font-size: 1.75rem !important;
+    margin-bottom: 8px !important;
+}
+
+/* ============================================================
+   TAB STYLING
+   ============================================================ */
+.stTabs [data-baseweb="tab-list"] { gap: 10px; }
+
+.stTabs [data-baseweb="tab"] {
+    height: 48px !important;
+    background-color: var(--tab-bg) !important;
+    border-radius: 10px !important;
+    padding: 0 24px !important;
+    border: 1px solid var(--tab-border) !important;
+    color: var(--tab-text) !important;
+    font-weight: 500 !important;
+    transition: all 0.25s ease-in-out !important;
+    white-space: pre-wrap !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: var(--tab-hover-bg) !important;
+    color: var(--sidebar-accent) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: var(--tab-selected-bg) !important;
+    color: var(--tab-selected-color) !important;
+    font-weight: 700 !important;
+    box-shadow: var(--tab-selected-shadow) !important;
+}
+
+/* ============================================================
+   SIDEBAR — GLOBAL
+   ============================================================ */
 [data-testid="stSidebar"] {
     background-color: var(--sidebar-bg) !important;
     border-right: 1px solid var(--sidebar-border) !important;
@@ -72,24 +252,24 @@ h1, h2, h3, h4, h5, h6 {
     border-color: var(--sidebar-border) !important;
 }
 
-/* Navigation Radio options in Sidebar */
+/* Sidebar Radio navigation */
 [data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding: 8px 16px !important;
+    padding: 8px 14px !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
     background-color: transparent !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
     border: none !important;
+    display: block !important;
 }
 
 [data-testid="stSidebar"] [data-testid="stRadio"] label p {
     color: var(--sidebar-text-secondary) !important;
-    font-size: 0.95rem !important;
+    font-size: 0.93rem !important;
     font-weight: 400 !important;
     transition: all 0.2s ease !important;
 }
 
-/* Highlight active item */
 [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
     background-color: var(--sidebar-accent-bg) !important;
 }
@@ -107,132 +287,59 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--sidebar-accent) !important;
 }
 
-/* Dropdown inputs inside the Sidebar */
+/* Sidebar Selectboxes */
 [data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: var(--sidebar-bg) !important;
     border: 1px solid var(--sidebar-border) !important;
     color: var(--sidebar-text) !important;
 }
-
-[data-testid="stSidebar"] div[data-baseweb="select"] input {
-    color: var(--sidebar-text) !important;
-}
-
+[data-testid="stSidebar"] div[data-baseweb="select"] input,
 [data-testid="stSidebar"] div[data-baseweb="select"] [data-testid="stSelectboxVal"] {
     color: var(--sidebar-text) !important;
 }
-
 [data-testid="stSidebar"] div[data-baseweb="select"] svg {
     fill: var(--sidebar-text-secondary) !important;
 }
 
-/* Portal Dropdown popup listbox & options (outside sidebar but theme-dependent) */
-div[role="listbox"], div[role="listbox"] * {
-    background-color: var(--sidebar-bg) !important;
-    color: var(--sidebar-text) !important;
+/* Portal Dropdown popup */
+div[role="listbox"],
+div[role="listbox"] * {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
 }
-
 div[role="option"] {
-    color: var(--sidebar-text) !important;
-    background-color: var(--sidebar-bg) !important;
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+}
+div[role="option"]:hover,
+div[role="option"][aria-selected="true"] {
+    background-color: #eff6ff !important;
+    color: #1a73e8 !important;
 }
 
-div[role="option"]:hover, div[role="option"][aria-selected="true"] {
-    background-color: var(--sidebar-hover-bg) !important;
-    color: var(--sidebar-accent) !important;
-}
-
-/* Glassmorphic KPI Cards style */
-.kpi-card {
-    background: var(--card-bg) !important;
-    border: 1px solid var(--card-border) !important;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: var(--card-shadow) !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    text-align: center;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    margin-bottom: 20px;
-    animation: fadeInUp 0.5s ease-out;
-}
-
-.kpi-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 16px 40px 0 rgba(26, 115, 232, 0.12) !important;
-    border-color: var(--sidebar-accent) !important;
-}
-
-.kpi-value {
-    font-size: 2.25rem;
-    font-weight: 700;
-    color: var(--card-value-color) !important;
-    margin: 5px 0;
-    letter-spacing: -0.5px;
-}
-
-.kpi-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--card-label-color) !important;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.kpi-icon {
-    font-size: 1.75rem;
-    margin-bottom: 8px;
-}
-
-/* Tab styling and spacing */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 12px;
-}
-
-.stTabs [data-baseweb="tab"] {
-    height: 48px;
-    white-space: pre-wrap;
-    background-color: var(--tab-bg) !important;
-    border-radius: 10px;
-    padding-left: 24px;
-    padding-right: 24px;
-    border: 1px solid var(--tab-border) !important;
-    color: var(--sidebar-text-secondary) !important;
-    font-weight: 500;
-    transition: all 0.25s ease-in-out;
-}
-
-.stTabs [data-baseweb="tab"]:hover {
-    background-color: var(--tab-hover-bg) !important;
-    color: var(--sidebar-accent) !important;
-}
-
-.stTabs [aria-selected="true"] {
-    background-color: var(--tab-selected-bg) !important;
-    color: var(--tab-selected-color) !important;
-    font-weight: 700;
-    box-shadow: var(--tab-selected-shadow) !important;
-}
-
-/* Title and Subtitle in Sidebar */
+/* ============================================================
+   SIDEBAR BRANDED HEADER CLASSES
+   ============================================================ */
 .sidebar-title {
-    text-align: center;
+    text-align: center !important;
     color: var(--sidebar-accent) !important;
     font-weight: 700 !important;
     margin-bottom: 0px !important;
 }
 
 .sidebar-subtitle {
-    text-align: center;
-    font-size: 0.9rem;
+    text-align: center !important;
+    font-size: 0.9rem !important;
     color: var(--sidebar-text-secondary) !important;
     margin-top: 0px !important;
     margin-bottom: 10px !important;
 }
 
-/* Highlights */
+/* ============================================================
+   SECTION HIGHLIGHT (used in Portfolio Overlap page)
+   ============================================================ */
 .section-highlight {
-    text-align: center;
+    text-align: center !important;
     color: var(--sidebar-accent) !important;
     font-weight: 700 !important;
 }
