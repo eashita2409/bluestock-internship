@@ -143,11 +143,11 @@ if conn:
 
     # --- SIDEBAR NAVIGATION & THEME SELECTOR ---
     st.sidebar.markdown(
-        "<h2 style='text-align: center; color: #1a73e8;'>Bluestock Fintech</h2>", 
+        "<h2 class='sidebar-title'>Bluestock Fintech</h2>", 
         unsafe_allow_html=True
     )
     st.sidebar.markdown(
-        "<p style='text-align: center; font-size: 0.9rem; color: #5f6368;'>Mutual Fund Analytics Dashboard</p>", 
+        "<p class='sidebar-subtitle'>Mutual Fund Analytics Dashboard</p>", 
         unsafe_allow_html=True
     )
     st.sidebar.divider()
@@ -159,45 +159,99 @@ if conn:
         if choice == "Dark Neon Theme":
             st.markdown("""
                 <style>
-                .stApp {
-                    background-color: #0b0f19 !important;
-                    color: #e2e8f0 !important;
+                :root {
+                    --sidebar-bg: #070a13;
+                    --sidebar-border: #1e293b;
+                    --sidebar-text: #e2e8f0;
+                    --sidebar-text-secondary: #94a3b8;
+                    --sidebar-accent: #38bdf8;
+                    --sidebar-accent-bg: rgba(56, 189, 248, 0.15);
+                    --sidebar-hover-bg: rgba(56, 189, 248, 0.05);
+                    
+                    --card-bg: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+                    --card-border: rgba(56, 189, 248, 0.3);
+                    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+                    --card-value-color: #38bdf8;
+                    --card-label-color: #94a3b8;
+                    
+                    --tab-bg: #0f172a;
+                    --tab-border: #1e293b;
+                    --tab-hover-bg: #1e293b;
+                    --tab-selected-bg: #0284c7;
+                    --tab-selected-color: #ffffff;
+                    --tab-selected-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+                    
+                    --body-bg: #0b0f19;
+                    --body-text: #e2e8f0;
+                    --heading-color: #f8fafc;
                 }
-                [data-testid="stSidebar"] {
-                    background-color: #070a13 !important;
-                    border-right: 1px solid #1e293b !important;
-                }
-                [data-testid="stSidebar"] * {
-                    color: #e2e8f0 !important;
-                }
-                .kpi-card {
-                    background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important;
-                    border: 1px solid rgba(56, 189, 248, 0.3) !important;
-                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
-                }
-                .kpi-value {
-                    color: #38bdf8 !important;
-                }
-                .kpi-label {
-                    color: #94a3b8 !important;
-                }
-                .stTabs [data-baseweb="tab"] {
-                    background-color: #0f172a !important;
-                    color: #94a3b8 !important;
-                    border: 1px solid #1e293b !important;
-                }
-                .stTabs [aria-selected="true"] {
-                    background-color: #0284c7 !important;
-                    color: white !important;
-                    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4) !important;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                    color: #f8fafc !important;
+                </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+                <style>
+                :root {
+                    --sidebar-bg: #ffffff;
+                    --sidebar-border: #cbd5e1;
+                    --sidebar-text: #0f172a;
+                    --sidebar-text-secondary: #475569;
+                    --sidebar-accent: #1a73e8;
+                    --sidebar-accent-bg: rgba(26, 115, 232, 0.08);
+                    --sidebar-hover-bg: rgba(26, 115, 232, 0.04);
+                    
+                    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,244,248,0.95) 100%);
+                    --card-border: rgba(26, 115, 232, 0.15);
+                    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+                    --card-value-color: #1a73e8;
+                    --card-label-color: #5f6368;
+                    
+                    --tab-bg: #f1f3f4;
+                    --tab-border: #dadce0;
+                    --tab-hover-bg: #e8eaed;
+                    --tab-selected-bg: #1a73e8;
+                    --tab-selected-color: #ffffff;
+                    --tab-selected-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+                    
+                    --body-bg: #ffffff;
+                    --body-text: #1e293b;
+                    --heading-color: #0f172a;
                 }
                 </style>
             """, unsafe_allow_html=True)
             
     inject_theme(theme_choice)
+
+    def apply_theme_to_plotly(fig, choice):
+        """Dynamically updates Plotly figures to match the selected theme style."""
+        if not fig:
+            return fig
+        if choice == "Dark Neon Theme":
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#0b0f19",
+                plot_bgcolor="#0b0f19",
+                font=dict(color="#e2e8f0", family="Outfit"),
+                xaxis=dict(gridcolor="#1e293b", zerolinecolor="#1e293b"),
+                yaxis=dict(gridcolor="#1e293b", zerolinecolor="#1e293b")
+            )
+            if hasattr(fig.layout, 'coloraxis') and fig.layout.coloraxis:
+                if fig.layout.coloraxis.colorbar:
+                    fig.layout.coloraxis.colorbar.tickfont.color = "#e2e8f0"
+                    fig.layout.coloraxis.colorbar.title.font.color = "#e2e8f0"
+        else:
+            fig.update_layout(
+                template="plotly_white",
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#ffffff",
+                font=dict(color="#0f172a", family="Outfit"),
+                xaxis=dict(gridcolor="#f1f5f9", zerolinecolor="#f1f5f9"),
+                yaxis=dict(gridcolor="#f1f5f9", zerolinecolor="#f1f5f9")
+            )
+        return fig
+
+    def render_chart(fig):
+        apply_theme_to_plotly(fig, theme_choice)
+        st.plotly_chart(fig, use_container_width=True)
 
     # Page Select
     page = st.sidebar.radio(
@@ -314,7 +368,7 @@ if conn:
             )
             fig_aum.update_layout(template="plotly_white", coloraxis_showscale=False)
             fig_aum.update_yaxes(autorange="reversed")
-            st.plotly_chart(fig_aum, use_container_width=True)
+            render_chart(fig_aum)
             
         with c2:
             st.markdown("### Asset Allocation Breakdown")
@@ -327,7 +381,7 @@ if conn:
                 color_discrete_sequence=px.colors.qualitative.Safe
             )
             fig_pie.update_layout(template="plotly_white")
-            st.plotly_chart(fig_pie, use_container_width=True)
+            render_chart(fig_pie)
 
     # --- PAGE 2: NAV TRACKER & BOLLINGER BANDS ---
     elif page == "NAV Tracker & Bollinger Bands":
@@ -421,7 +475,7 @@ if conn:
                 hovermode="x unified",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig, use_container_width=True)
+            render_chart(fig)
             
             # Downloadable CSV Data Table
             st.markdown("### Export Daily NAV Data")
@@ -471,7 +525,7 @@ if conn:
                     color_discrete_sequence=['#ea4335']
                 )
                 fig_dd.update_layout(template="plotly_white", yaxis_title="Drawdown % (Drop from Peak)")
-                st.plotly_chart(fig_dd, use_container_width=True)
+                render_chart(fig_dd)
                 
                 # Drawdown stats
                 max_dd = df_dd['Drawdown_Pct'].min()
@@ -489,7 +543,7 @@ if conn:
                     color_discrete_sequence=['#34a853']
                 )
                 fig_rr.update_layout(template="plotly_white", yaxis_title="1-Year Rolling Return (Ann.)")
-                st.plotly_chart(fig_rr, use_container_width=True)
+                render_chart(fig_rr)
                 
                 # Returns stats
                 avg_rr = df_rr['Rolling_Return_Ann'].mean() * 100.0
@@ -515,7 +569,7 @@ if conn:
         st.markdown("Track industry-wide monthly SIP inflows alongside portfolio folios growth.")
         
         fig_sip = plot_sip_inflows(df_sip)
-        st.plotly_chart(fig_sip, use_container_width=True)
+        render_chart(fig_sip)
 
     # --- PAGE 5: SCHEME RANKINGS & COMPARISON ---
     elif page == "Scheme Rankings & Comparison":
@@ -586,7 +640,7 @@ if conn:
                     color_continuous_scale="teal"
                 )
 
-                st.plotly_chart(fig_comp, use_container_width=True)
+                render_chart(fig_comp)
     # --- PAGE 6: PORTFOLIO OVERLAPS & SECTORS ---
     elif page == "Portfolio Overlaps & Sectors":
         st.markdown("# Portfolio Holdings Comparison & Sector Overlap Analysis")
@@ -641,7 +695,7 @@ if conn:
             total_overlap = sect_merge['overlap'].sum()
 
             st.markdown(
-                f"<h3 style='text-align: center; color: #1a73e8;'>Portfolio Sector Overlap: {total_overlap:.2f}%</h3>",
+                f"<h3 class='section-highlight'>Portfolio Sector Overlap: {total_overlap:.2f}%</h3>",
                 unsafe_allow_html=True
             )
 
@@ -674,7 +728,7 @@ if conn:
 
                 fig_sa.update_yaxes(autorange="reversed")
 
-                st.plotly_chart(fig_sa, use_container_width=True)
+                render_chart(fig_sa)
 
             with c_sect_b:
                 st.markdown(f"### {scheme_b} Sector Allocation")
@@ -695,7 +749,7 @@ if conn:
 
                 fig_sb.update_yaxes(autorange="reversed")
 
-                st.plotly_chart(fig_sb, use_container_width=True)
+                render_chart(fig_sb)
     # --- PAGE 7: WEALTH GROWTH SIMULATOR ---
     elif page == "Wealth Growth Simulator":
         st.markdown("# Compounding Investment Wealth Simulator")
@@ -758,7 +812,7 @@ if conn:
                 template="plotly_white",
                 hovermode="x unified"
             )
-            st.plotly_chart(fig_sim, use_container_width=True)
+            render_chart(fig_sim)
             
             # Download simulated dataset
             csv_data = df_sim.to_csv(index=False).encode('utf-8')
@@ -778,11 +832,11 @@ if conn:
         with c1:
             demo_opt = st.selectbox("Group Transaction Counts by:", ["age_group", "city_tier", "gender", "kyc_status"])
             fig_demo = plot_demographics(df_tx_f, demo_opt)
-            st.plotly_chart(fig_demo, use_container_width=True)
+            render_chart(fig_demo)
             
         with c2:
             fig_pay = plot_payment_modes(df_tx_f)
-            st.plotly_chart(fig_pay, use_container_width=True)
+            render_chart(fig_pay)
             
         st.divider()
         
@@ -799,7 +853,7 @@ if conn:
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig_type.update_layout(template="plotly_white", showlegend=False)
-            st.plotly_chart(fig_type, use_container_width=True)
+            render_chart(fig_type)
             
         with c4:
             st.markdown("### Investor Profile Correlation Heatmap")
@@ -825,7 +879,7 @@ if conn:
                 title="Correlation Heatmap (Age vs Income vs Amount)"
             )
             fig_heat.update_layout(template="plotly_white")
-            st.plotly_chart(fig_heat, use_container_width=True)
+            render_chart(fig_heat)
 
 else:
     st.error("Could not connect to the database. Make sure the database exists.")
