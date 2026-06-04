@@ -8,6 +8,7 @@ scipy
 # Visualizations & Charts
 matplotlib
 seaborn
+plotly
 
 # Fetching financial data from online APIs
 requests
@@ -17,3 +18,12 @@ ipykernel
 
 # Testing framework
 pytest
+
+# Streamlit App & Deployment
+streamlit
+
+# Machine Learning
+scikit-learn
+
+# PDF Generation
+reportlab
