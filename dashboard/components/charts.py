@@ -1,7 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-
 # Standard colors
 COLOR_THEME = ["#1a73e8", "#34a853", "#fbbc05", "#ea4335", "#ab47bc", "#00acc1", "#ff7043"]
 
@@ -34,11 +33,12 @@ def plot_nav_tracker(df_nav: pd.DataFrame, selected_schemes: list):
 
 def plot_sip_inflows(df_sip: pd.DataFrame):
     """Generates a dual-axis line and bar plot for monthly SIP inflows & active accounts."""
+
     if df_sip.empty:
         return go.Figure()
-        
+
     fig = go.Figure()
-    
+
     # Add active accounts as bars
     fig.add_trace(
         go.Bar(
@@ -50,7 +50,7 @@ def plot_sip_inflows(df_sip: pd.DataFrame):
             hovertemplate="%{y:.2f} Crore accounts"
         )
     )
-    
+
     # Add inflow as a line
     fig.add_trace(
         go.Scatter(
@@ -63,40 +63,48 @@ def plot_sip_inflows(df_sip: pd.DataFrame):
             marker=dict(size=8),
             hovertemplate="₹%{y:,} Crore"
         )
-  fig.update_layout(
-    title="Industry SIP Inflows & Active Accounts Trend",
-    xaxis=dict(title="Month", tickangle=45),
+    )
 
-    yaxis=dict(
-        title=dict(
-            text="SIP Inflows (INR Crore)",
-            font=dict(color="#1a73e8")
+    fig.update_layout(
+        title="Industry SIP Inflows & Active Accounts Trend",
+
+        xaxis=dict(
+            title="Month",
+            tickangle=45
         ),
-        tickfont=dict(color="#1a73e8")
-    ),
 
-    yaxis2=dict(
-        title=dict(
-            text="Active SIP Accounts (Crore)",
-            font=dict(color="#34a853")
+        yaxis=dict(
+            title=dict(
+                text="SIP Inflows (INR Crore)",
+                font=dict(color="#1a73e8")
+            ),
+            tickfont=dict(color="#1a73e8")
         ),
-        tickfont=dict(color="#34a853"),
-        overlaying="y",
-        side="right"
-    ),
 
-    template="plotly_white",
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    ),
-    margin=dict(l=40, r=40, t=80, b=40)
-)
+        yaxis2=dict(
+            title=dict(
+                text="Active SIP Accounts (Crore)",
+                font=dict(color="#34a853")
+            ),
+            tickfont=dict(color="#34a853"),
+            overlaying="y",
+            side="right"
+        ),
 
-return fig
+        template="plotly_white",
+
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+
+        margin=dict(l=40, r=40, t=80, b=40)
+    )
+
+    return fig
 
 def plot_risk_return(df_perf: pd.DataFrame):
     """Generates an interactive risk (volatility) vs return scatter plot."""
