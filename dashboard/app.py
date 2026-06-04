@@ -3,10 +3,13 @@ import sqlite3
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from io import BytesIO
 
 # Set Streamlit page config
 st.set_page_config(
-    page_title="Bluestock Mutual Fund Analytics Dashboard",
+    page_title="Bluestock Mutual Fund Analytics Platform",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -18,7 +21,7 @@ if css_path.exists():
     with open(css_path, "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# Import components
+# Import components & analytics
 from components.kpi_cards import render_kpi_card
 from components.charts import (
     plot_nav_tracker,
@@ -28,6 +31,14 @@ from components.charts import (
     plot_demographics,
     plot_payment_modes
 )
+from scripts.predictive_analysis import (
+    calculate_sip_growth,
+    calculate_lumpsum_growth,
+    calculate_bollinger_bands,
+    calculate_drawdowns,
+    calculate_rolling_returns,
+    forecast_nav_trend
+)
 
 # Resolve DB path
 db_path = Path(__file__).resolve().parent.parent / "data" / "db" / "mutual_fund_analytics.db"
@@ -36,13 +47,75 @@ db_path = Path(__file__).resolve().parent.parent / "data" / "db" / "mutual_fund_
 def get_db_connection():
     """Establishes connection to the database."""
     if not db_path.exists():
-        st.error(f"Database not found at {db_path}. Please run database loading first.")
+        st.error(f"Database not found at {db_path}. Please check configuration.")
         return None
     conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 conn = get_db_connection()
+
+# PDF Generator using ReportLab
+def generate_pdf_report(df_perf_table, total_aum_lakh_cr, latest_sip_inflow):
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        story = []
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontName='Helvetica-Bold',
+            fontSize=20,
+            textColor=colors.HexColor('#1a73e8'),
+            spaceAfter=15
+        )
+        story.append(Paragraph("Bluestock Mutual Fund Analytics Report", title_style))
+        story.append(Spacer(1, 10))
+        
+        body_style = styles['Normal']
+        story.append(Paragraph(f"<b>Total Assets Under Management (AUM):</b> INR {total_aum_lakh_cr:.2f} Lakh Crore", body_style))
+        story.append(Paragraph(f"<b>Latest Month SIP Inflow:</b> INR {latest_sip_inflow:,} Crore", body_style))
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("<b>Top Scheme Performance Rankings (3-Year Annualized):</b>", styles['Heading2']))
+        story.append(Spacer(1, 8))
+        
+        # Format table data
+        table_data = [['Scheme Name', 'Category', '3-Yr Return (%)', 'Sharpe Ratio', 'AUM (Cr)']]
+        for idx, row in df_perf_table.head(10).iterrows():
+            table_data.append([
+                str(row['Scheme Name'])[:30] + '...',
+                str(row['Category']),
+                f"{row['3-Yr Return (%)']:.2f}%",
+                f"{row['Sharpe Ratio']:.2f}",
+                f"{row['AUM (Cr)']:,}"
+            ])
+            
+        t = Table(table_data, colWidths=[180, 100, 80, 70, 70])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1a73e8')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 6),
+            ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f1f3f4')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+        ]))
+        story.append(t)
+        
+        doc.build(story)
+        buffer.seek(0)
+        return buffer.getvalue()
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
+        return None
 
 if conn:
     # --- LOAD CACHED DATA ---
@@ -56,9 +129,9 @@ if conn:
     df_tx = load_data("SELECT * FROM fact_transactions;")
     df_aum = load_data("SELECT * FROM fact_aum ORDER BY date;")
     df_nav = load_data("SELECT n.amfi_code, f.scheme_name, n.date, n.nav, f.category, f.fund_house FROM fact_nav n JOIN dim_fund f ON n.amfi_code = f.amfi_code ORDER BY n.amfi_code, n.date;")
-    df_port = load_data("SELECT p.*, f.scheme_name, f.category FROM fact_portfolio p JOIN dim_fund f ON p.amfi_code = f.amfi_code;")
+    df_port = load_data("SELECT p.*, f.scheme_name, f.category, f.fund_house FROM fact_portfolio p JOIN dim_fund f ON p.amfi_code = f.amfi_code;")
 
-    # --- SIDEBAR NAVIGATION & GLOBAL FILTERS ---
+    # --- SIDEBAR NAVIGATION & THEME SELECTOR ---
     st.sidebar.markdown(
         "<h2 style='text-align: center; color: #1a73e8;'>Bluestock Fintech</h2>", 
         unsafe_allow_html=True
@@ -69,14 +142,70 @@ if conn:
     )
     st.sidebar.divider()
 
+    # Theme selection & Custom theme injector
+    theme_choice = st.sidebar.selectbox("Dashboard Theme Style:", ["Light Theme", "Dark Neon Theme"])
+    
+    def inject_theme(choice):
+        if choice == "Dark Neon Theme":
+            st.markdown("""
+                <style>
+                .stApp {
+                    background-color: #0b0f19 !important;
+                    color: #e2e8f0 !important;
+                }
+                [data-testid="stSidebar"] {
+                    background-color: #070a13 !important;
+                    border-right: 1px solid #1e293b !important;
+                }
+                [data-testid="stSidebar"] * {
+                    color: #e2e8f0 !important;
+                }
+                .kpi-card {
+                    background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important;
+                    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+                }
+                .kpi-value {
+                    color: #38bdf8 !important;
+                }
+                .kpi-label {
+                    color: #94a3b8 !important;
+                }
+                .stTabs [data-baseweb="tab"] {
+                    background-color: #0f172a !important;
+                    color: #94a3b8 !important;
+                    border: 1px solid #1e293b !important;
+                }
+                .stTabs [aria-selected="true"] {
+                    background-color: #0284c7 !important;
+                    color: white !important;
+                    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4) !important;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    color: #f8fafc !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            
+    inject_theme(theme_choice)
+
     # Page Select
     page = st.sidebar.radio(
-        "Navigate Pages:",
-        ["Overview & KPIs", "NAV Tracker", "SIP Trends", "Scheme Comparison", "Portfolio & Sectors", "Investor Demographics"]
+        "Dashboard Navigation Modules:",
+        [
+            "Overview & KPIs", 
+            "NAV Tracker & Bollinger Bands", 
+            "Advanced Analytics (Drawdowns & Returns)", 
+            "SIP Trends & Flows", 
+            "Scheme Rankings & Comparison", 
+            "Portfolio Overlaps & Sectors", 
+            "Wealth Growth Simulator",
+            "Investor Demographics"
+        ]
     )
     
     st.sidebar.divider()
-    st.sidebar.markdown("### Global Filters")
+    st.sidebar.markdown("### Advanced Search Filters")
     
     # Global Filters (Category & Fund House)
     categories = ["All"] + sorted(list(df_fund['category'].dropna().unique()))
@@ -111,18 +240,14 @@ if conn:
         st.markdown("Key platform performance metrics, assets scale, and recent activity overview.")
         
         # Calculate KPIs
-        # Total AUM (Latest date sum)
         latest_aum_date = df_aum['date'].max()
         df_aum_latest = df_aum[df_aum['date'] == latest_aum_date]
         total_aum_cr = df_aum_latest['aum_crore'].sum()
         total_aum_lakh_cr = total_aum_cr / 100000
         
-        # Latest Month SIP Inflow
         latest_sip_row = df_sip.iloc[-1]
         latest_sip_inflow = latest_sip_row['sip_inflow_crore']
         active_sip_accounts = latest_sip_row['active_sip_accounts_crore']
-        
-        # Total Unique Investors in transaction database
         total_investors = df_tx['investor_id'].nunique()
         
         # Display KPI cards
@@ -138,11 +263,33 @@ if conn:
             
         st.divider()
         
-        # Charts section
+        # PDF Generation & Download Functionality
+        st.markdown("### Programmatic Report Export")
+        c_exp1, c_exp2 = st.columns([1, 4])
+        with c_exp1:
+            # Build clean Performance table for PDF
+            df_perf_table = df_perf_f[['scheme_name', 'category', 'return_3yr_pct', 'sharpe_ratio', 'aum_crore']].rename(columns={
+                'scheme_name': 'Scheme Name',
+                'category': 'Category',
+                'return_3yr_pct': '3-Yr Return (%)',
+                'sharpe_ratio': 'Sharpe Ratio',
+                'aum_crore': 'AUM (Cr)'
+            }).sort_values(by='Sharpe Ratio', ascending=False)
+            
+            pdf_bytes = generate_pdf_report(df_perf_table, total_aum_lakh_cr, latest_sip_inflow)
+            
+            if pdf_bytes:
+                st.download_button(
+                    label="📄 Export Executive Summary PDF",
+                    data=pdf_bytes,
+                    file_name="Bluestock_Executive_Analytics_Report.pdf",
+                    mime="application/pdf"
+                )
+        st.divider()
+        
         c1, c2 = st.columns([2, 1])
         with c1:
             st.markdown("### Assets Under Management (AUM) Share by AMC")
-            # Group latest AUM by fund house
             df_aum_grouped = df_aum_latest.groupby('fund_house')['aum_crore'].sum().reset_index()
             df_aum_grouped = df_aum_grouped.sort_values(by='aum_crore', ascending=False)
             
@@ -172,218 +319,383 @@ if conn:
             fig_pie.update_layout(template="plotly_white")
             st.plotly_chart(fig_pie, use_container_width=True)
 
-    # --- PAGE 2: NAV TRACKER ---
-    elif page == "NAV Tracker":
-        st.markdown("# Net Asset Value (NAV) Tracker")
-        st.markdown("Visualize daily NAV historical prices. Use filters on the left to restrict categories or fund houses.")
+    # --- PAGE 2: NAV TRACKER & BOLLINGER BANDS ---
+    elif page == "NAV Tracker & Bollinger Bands":
+        st.markdown("# NAV Price Tracker & Volatility Channel")
+        st.markdown("Analyze daily NAV price trends, overlay Bollinger Bands (20-Day volatility channel), and project next 30 days price trend.")
         
-        # Dropdown selection for schemes
+        # Schemes Dropdown
         schemes = sorted(list(df_nav_f['scheme_name'].unique()))
         
         if not schemes:
             st.warning("No schemes found matching the selected global filters.")
         else:
-            default_schemes = schemes[:3]
-            selected_schemes = st.multiselect("Select Schemes to Plot:", schemes, default=default_schemes)
-            
-            if selected_schemes:
-                fig_nav = plot_nav_tracker(df_nav_f, selected_schemes)
-                st.plotly_chart(fig_nav, use_container_width=True)
+            c_select, c_opts = st.columns([3, 1])
+            with c_select:
+                selected_scheme = st.selectbox("Select Scheme to Inspect:", schemes)
+            with c_opts:
+                enable_bb = st.checkbox("Overlay Bollinger Bands (20-Day)", value=True)
+                enable_forecast = st.checkbox("Show 30-Day Predictive Trend", value=True)
                 
-                # Show data table for selected schemes
-                df_nav_show = df_nav_f[df_nav_f['scheme_name'].isin(selected_schemes)].copy()
-                df_nav_show = df_nav_show.pivot(index='date', columns='scheme_name', values='nav')
-                st.markdown("### Historical NAV Data Table")
-                st.dataframe(df_nav_show.tail(30), use_container_width=True)
-            else:
-                st.info("Please select at least one scheme to visualize.")
-
-    # --- PAGE 3: SIP TRENDS ---
-    elif page == "SIP Trends":
-        st.markdown("# Industry-wide SIP Inflow Analysis")
-        st.markdown("Monthly tracking of industry-wide SIP inflows, active investor accounts, and net category inflows.")
-        
-        fig_sip = plot_sip_inflows(df_sip)
-        st.plotly_chart(fig_sip, use_container_width=True)
-        
-        st.divider()
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("### Net Monthly Inflows by Fund Category")
-            query_cat = "SELECT month, category, net_inflow_crore FROM fact_category_inflows ORDER BY month;"
-            df_cat = load_data(query_cat)
+            df_nav_scheme = df_nav_f[df_nav_f['scheme_name'] == selected_scheme].copy()
+            df_nav_scheme['date'] = pd.to_datetime(df_nav_scheme['date'])
+            df_nav_scheme = df_nav_scheme.sort_values(by='date').reset_index(drop=True)
             
-            # Pivot category inflows
-            df_cat_pivot = df_cat.pivot(index='month', columns='category', values='net_inflow_crore').fillna(0)
+            # Sub-filters: Date Slider
+            min_date = df_nav_scheme['date'].min().date()
+            max_date = df_nav_scheme['date'].max().date()
+            selected_date_range = st.slider("Select Timeline Range:", min_value=min_date, max_value=max_date, value=(min_date, max_date))
             
-            fig_cat = px.line(
-                df_cat,
-                x='month',
-                y='net_inflow_crore',
-                color='category',
-                labels={'net_inflow_crore': 'Net Inflow (INR Crore)', 'month': 'Month'},
-                title="Category Net Monthly Inflows Over Time"
+            df_nav_filtered = df_nav_scheme[
+                (df_nav_scheme['date'].dt.date >= selected_date_range[0]) & 
+                (df_nav_scheme['date'].dt.date <= selected_date_range[1])
+            ].copy()
+            
+            # Apply analytics
+            df_bb = calculate_bollinger_bands(df_nav_filtered)
+            df_hist, df_fc = forecast_nav_trend(df_nav_filtered)
+            
+            fig = go.Figure()
+            
+            # 1. Historical NAV Line
+            fig.add_trace(
+                go.Scatter(
+                    x=df_bb['date'], y=df_bb['nav'],
+                    name="Daily NAV",
+                    line=dict(color="#1a73e8", width=2.5)
+                )
             )
-            fig_cat.update_layout(template="plotly_white")
-            st.plotly_chart(fig_cat, use_container_width=True)
             
-        with c2:
-            st.markdown("### Cumulative Sector / Assets Folio Count (Crores)")
-            query_folios = "SELECT month, equity_folios_crore, debt_folios_crore, hybrid_folios_crore FROM fact_industry_folios ORDER BY month;"
-            df_fol = load_data(query_folios)
-            
-            fig_fol = go.Figure()
-            fig_fol.add_trace(go.Scatter(x=df_fol['month'], y=df_fol['equity_folios_crore'], name="Equity Folios (Cr)", mode="lines+markers"))
-            fig_fol.add_trace(go.Scatter(x=df_fol['month'], y=df_fol['debt_folios_crore'], name="Debt Folios (Cr)", mode="lines"))
-            fig_fol.add_trace(go.Scatter(x=df_fol['month'], y=df_fol['hybrid_folios_crore'], name="Hybrid Folios (Cr)", mode="lines"))
-            
-            fig_fol.update_layout(
-                title="Folio Count Expansion by Asset Class",
-                xaxis_title="Month",
-                yaxis_title="Folios (Crores)",
-                template="plotly_white"
+            # 2. Bollinger Bands
+            if enable_bb:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_bb['date'], y=df_bb['SMA'],
+                        name="20-Day SMA",
+                        line=dict(color="#e0a800", width=1.5, dash="dash")
+                    )
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_bb['date'], y=df_bb['Upper_Band'],
+                        name="Upper Volatility Band",
+                        line=dict(color="rgba(26,115,232,0.2)", width=0),
+                        showlegend=False
+                    )
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_bb['date'], y=df_bb['Lower_Band'],
+                        name="Bollinger Band (Volatility Channel)",
+                        line=dict(color="rgba(26,115,232,0.2)", width=0),
+                        fill='tonexty',
+                        fillcolor='rgba(26,115,232,0.06)'
+                    )
+                )
+                
+            # 3. Forecast Line
+            if enable_forecast:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_fc['date'], y=df_fc['nav_forecast'],
+                        name="Predictive NAV Forecast (30 Days)",
+                        line=dict(color="#ea4335", width=2.5, dash="dot")
+                    )
+                )
+                
+            fig.update_layout(
+                title=f"NAV Trend & Analytics for {selected_scheme}",
+                xaxis_title="Date",
+                yaxis_title="Net Asset Value (INR)",
+                template="plotly_white",
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_fol, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Downloadable CSV Data Table
+            st.markdown("### Export Daily NAV Data")
+            csv_df = df_bb[['date', 'nav', 'SMA', 'Upper_Band', 'Lower_Band']].rename(columns={
+                'date': 'Date', 'nav': 'NAV Value', 'SMA': '20-Day SMA', 
+                'Upper_Band': 'Upper Bollinger', 'Lower_Band': 'Lower Bollinger'
+            })
+            csv_data = csv_df.to_csv(index=False).encode('utf-8')
+            
+            st.download_button(
+                label="📥 Download NAV Analysis Table (CSV)",
+                data=csv_data,
+                file_name=f"{selected_scheme.replace(' ', '_')}_nav_data.csv",
+                mime="text/csv"
+            )
 
-    # --- PAGE 4: SCHEME COMPARISON ---
-    elif page == "Scheme Comparison":
-        st.markdown("# Mutual Fund Scheme Comparison")
-        st.markdown("Compare key metrics, Sharpe Ratios, volatility, and historical annualized returns across multiple schemes.")
+    # --- PAGE 3: ADVANCED ANALYTICS (DRAWDOWNS & RETURNS) ---
+    elif page == "Advanced Analytics (Drawdowns & Returns)":
+        st.markdown("# Advanced Financial Risk & Returns Analytics")
+        st.markdown("Analyze rolling returns over multiple horizons and evaluate maximum historical peak-to-trough drawdowns.")
         
-        schemes = sorted(list(df_perf_f['scheme_name'].dropna().unique()))
+        schemes = sorted(list(df_nav_f['scheme_name'].unique()))
         
         if not schemes:
             st.warning("No schemes found matching the selected global filters.")
         else:
-            selected_comp = st.multiselect("Select Schemes to Compare (Max 5):", schemes, default=schemes[:3])
+            selected_scheme = st.selectbox("Select Scheme for Drawdown & Returns Analysis:", schemes)
             
-            if selected_comp:
-                df_comp = df_perf_f[df_perf_f['scheme_name'].isin(selected_comp)]
-                
-                # Render Comparison Table
-                comp_cols = [
-                    'scheme_name', 'category', 'return_3yr_pct', 'std_dev_ann_pct', 
-                    'sharpe_ratio', 'aum_crore', 'expense_ratio_pct', 'morningstar_rating'
-                ]
-                df_comp_table = df_comp[comp_cols].rename(columns={
-                    'scheme_name': 'Scheme Name',
-                    'category': 'Category',
-                    'return_3yr_pct': '3-Yr Return (%)',
-                    'std_dev_ann_pct': 'Volatility (%)',
-                    'sharpe_ratio': 'Sharpe Ratio',
-                    'aum_crore': 'AUM (Cr)',
-                    'expense_ratio_pct': 'Expense Ratio (%)',
-                    'morningstar_rating': 'Rating'
-                })
-                
-                st.dataframe(df_comp_table.reset_index(drop=True), use_container_width=True)
-                
-                # Render Bar Charts comparing returns and Sharpe ratios
-                c1, c2 = st.columns(2)
-                with c1:
-                    fig_ret = px.bar(
-                        df_comp,
-                        x='return_3yr_pct',
-                        y='scheme_name',
-                        orientation='h',
-                        title="3-Year Annualized Return (%) Comparison",
-                        labels={'return_3yr_pct': 'Return (%)', 'scheme_name': 'Scheme'},
-                        color='return_3yr_pct',
-                        color_continuous_scale="viridis"
-                    )
-                    fig_ret.update_layout(template="plotly_white", coloraxis_showscale=False)
-                    st.plotly_chart(fig_ret, use_container_width=True)
-                    
-                with c2:
-                    fig_sr = px.bar(
-                        df_comp,
-                        x='sharpe_ratio',
-                        y='scheme_name',
-                        orientation='h',
-                        title="Sharpe Ratio Comparison (Higher means better risk-adjusted return)",
-                        labels={'sharpe_ratio': 'Sharpe Ratio', 'scheme_name': 'Scheme'},
-                        color='sharpe_ratio',
-                        color_continuous_scale="magenta"
-                    )
-                    fig_sr.update_layout(template="plotly_white", coloraxis_showscale=False)
-                    st.plotly_chart(fig_sr, use_container_width=True)
-                    
-                # Risk vs Return scatter plot showing where selected compare to all
-                st.divider()
-                st.markdown("### Risk vs. Return Positioning (Full Universe vs Selected)")
-                fig_scat = plot_risk_return(df_perf_f)
-                
-                # Add highlighting trace for selected schemes
-                fig_scat.add_trace(
-                    go.Scatter(
-                        x=df_comp['std_dev_ann_pct'],
-                        y=df_comp['return_3yr_pct'],
-                        mode='markers+text',
-                        marker=dict(size=14, color='red', symbol='x', line=dict(width=2, color='white')),
-                        text=df_comp['scheme_name'].apply(lambda x: x[:20] + "..."),
-                        textposition="top center",
-                        name="Compared Schemes"
-                    )
+            df_nav_scheme = df_nav_f[df_nav_f['scheme_name'] == selected_scheme].copy()
+            df_nav_scheme['date'] = pd.to_datetime(df_nav_scheme['date'])
+            df_nav_scheme = df_nav_scheme.sort_values(by='date').reset_index(drop=True)
+            
+            # Apply Drawdowns and Rolling Returns
+            df_dd = calculate_drawdowns(df_nav_scheme)
+            df_rr = calculate_rolling_returns(df_nav_scheme, window=252)
+            
+            st.divider()
+            
+            c_dd, c_rr = st.columns(2)
+            with c_dd:
+                st.markdown("### Historical Drawdown Curve (%)")
+                fig_dd = px.area(
+                    df_dd,
+                    x='date',
+                    y='Drawdown_Pct',
+                    labels={'Drawdown_Pct': 'Drawdown %', 'date': 'Date'},
+                    color_discrete_sequence=['#ea4335']
                 )
-                st.plotly_chart(fig_scat, use_container_width=True)
-            else:
-                st.info("Please select schemes to compare.")
+                fig_dd.update_layout(template="plotly_white", yaxis_title="Drawdown % (Drop from Peak)")
+                st.plotly_chart(fig_dd, use_container_width=True)
+                
+                # Drawdown stats
+                max_dd = df_dd['Drawdown_Pct'].min()
+                max_rec = df_dd['Recovery_Days'].max()
+                st.metric("Maximum Historical Drawdown", f"{max_dd:.2f}%", delta_color="inverse")
+                st.metric("Worst Recovery Period", f"{max_rec} Days")
+                
+            with c_rr:
+                st.markdown("### 1-Year Rolling Annualized Return (%)")
+                fig_rr = px.line(
+                    df_rr,
+                    x='date',
+                    y='Rolling_Return_Ann',
+                    labels={'Rolling_Return_Ann': 'Return %', 'date': 'Date'},
+                    color_discrete_sequence=['#34a853']
+                )
+                fig_rr.update_layout(template="plotly_white", yaxis_title="1-Year Rolling Return (Ann.)")
+                st.plotly_chart(fig_rr, use_container_width=True)
+                
+                # Returns stats
+                avg_rr = df_rr['Rolling_Return_Ann'].mean() * 100.0
+                max_rr = df_rr['Rolling_Return_Ann'].max() * 100.0
+                min_rr = df_rr['Rolling_Return_Ann'].min() * 100.0
+                st.metric("Average Rolling Return", f"{avg_rr:.2f}%")
+                st.metric("Max / Min Rolling Returns", f"{max_rr:.2f}% / {min_rr:.2f}%")
+                
+            # Download analysis data
+            st.divider()
+            df_export = df_dd.merge(df_rr[['date', 'Rolling_Return_Ann']], on='date', how='left')
+            csv_data = df_export.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Risk/Returns Dataset (CSV)",
+                data=csv_data,
+                file_name=f"{selected_scheme.replace(' ', '_')}_risk_returns.csv",
+                mime="text/csv"
+            )
 
-    # --- PAGE 5: PORTFOLIO & SECTORS ---
-    elif page == "Portfolio & Sectors":
-        st.markdown("# Portfolio Holdings & Sector Allocations")
-        st.markdown("Analyze stock holdings and sector diversifications of selected mutual fund schemes.")
+    # --- PAGE 4: SIP TRENDS & FLOWS ---
+    elif page == "SIP Trends & Flows":
+        st.markdown("# Industry-wide SIP Inflows & Category Flows")
+        st.markdown("Track industry-wide monthly SIP inflows alongside portfolio folios growth.")
         
-        # Scheme Dropdown Select
+        fig_sip = plot_sip_inflows(df_sip)
+        st.plotly_chart(fig_sip, use_container_width=True)
+
+    # --- PAGE 5: SCHEME RANKINGS & COMPARISON ---
+    elif page == "Scheme Rankings & Comparison":
+        st.markdown("# Risk-Adjusted Scheme Rankings & Performance Comparison")
+        st.markdown("Evaluate risk-adjusted performance across Sharpe, Sortino, Alpha, Beta, Volatility, and AUM scale.")
+        
+        # Display Rankings Table
+        st.markdown("### Risk-Adjusted Scheme Rankings")
+        df_rank = df_perf_f.copy()
+        df_rank = df_rank.sort_values(by='sharpe_ratio', ascending=False).reset_index(drop=True)
+        df_rank['sharpe_rank'] = df_rank.index + 1
+        
+        df_rank_table = df_rank[[
+            'sharpe_rank', 'scheme_name', 'category', 'return_3yr_pct', 'std_dev_ann_pct', 
+            'sharpe_ratio', 'alpha', 'beta', 'aum_crore'
+        ]].rename(columns={
+            'sharpe_rank': 'Rank',
+            'scheme_name': 'Scheme Name',
+            'category': 'Category',
+            'return_3yr_pct': '3-Yr Return (%)',
+            'std_dev_ann_pct': 'Volatility (%)',
+            'sharpe_ratio': 'Sharpe Ratio',
+            'alpha': 'Jensen Alpha',
+            'beta': 'Market Beta',
+            'aum_crore': 'AUM (Cr)'
+        })
+        st.dataframe(df_rank_table, use_container_width=True)
+        
+        csv_data = df_rank_table.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Rankings (CSV)",
+            data=csv_data,
+            file_name="bluestock_scheme_rankings.csv",
+            mime="text/csv"
+        )
+        
+        # Scheme Comparison Page
+        st.divider()
+        st.markdown("### Detailed Scheme Comparison")
+        
+        schemes = sorted(list(df_perf_f['scheme_name'].dropna().unique()))
+        selected_comp = st.multiselect("Select Schemes to Compare (Max 5):", schemes, default=schemes[:3])
+        
+        if selected_comp:
+            df_comp = df_perf_f[df_perf_f['scheme_name'].isin(selected_comp)]
+            
+            c_comp_tab, c_comp_ch = st.columns([1, 1])
+            with c_comp_tab:
+                comp_cols = ['scheme_name', 'category', 'return_3yr_pct', 'std_dev_ann_pct', 'sharpe_ratio', 'aum_crore']
+                df_comp_show = df_comp[comp_cols].rename(columns={
+                    'scheme_name': 'Scheme', 'category': 'Category', 
+                    'return_3yr_pct': '3-Yr Return %', 'std_dev_ann_pct': 'Volatility %', 
+                    'sharpe_ratio': 'Sharpe', 'aum_crore': 'AUM (Cr)'
+                })
+                st.dataframe(df_comp_show.reset_index(drop=True), use_container_width=True)
+                
+            with c_comp_ch:
+                fig_comp = px.bar(
+                    df_comp,
+                    x='return_3yr_pct',
+                    y='scheme_name',
+                    color='sharpe_ratio',
+                    title="3-Year Annualized Return vs Sharpe Ratio",
+                    labels={'return_3yr_pct': 'Return %', 'scheme_name': 'Scheme', 'sharpe_ratio': 'Sharpe Ratio'},
+                    color_continuous_scale="teal"
+                )
+                st.plotly_chart(fig_comp, use_container_width=True)
+
+    # --- PAGE 6: PORTFOLIO OVERLAPS & SECTORS ---
+    elif page == "Portfolio Overlaps & Sectors":
+        st.markdown("# Portfolio Holdings Comparison & Sector Overlap Analysis")
+        st.markdown("Compare the stock holdings and sector concentration of two mutual funds side-by-side to compute portfolio sector overlap.")
+        
         schemes = sorted(list(df_port_f['scheme_name'].dropna().unique()))
         
-        if not schemes:
-            st.warning("No portfolio data found matching the selected global filters.")
+        if len(schemes) < 2:
+            st.warning("Please reset your global filters to allow at least 2 schemes for comparison.")
         else:
-            selected_scheme = st.selectbox("Select Scheme to Inspect Portfolio:", schemes)
+            col_a, col_b = st.columns(2)
+            with col_a:
+                scheme_a = st.selectbox("Select Scheme A:", schemes, index=0)
+            with col_b:
+                scheme_b = st.selectbox("Select Scheme B:", schemes, index=min(1, len(schemes)-1))
+                
+            df_port_a = df_port_f[df_port_f['scheme_name'] == scheme_a]
+            df_port_b = df_port_f[df_port_f['scheme_name'] == scheme_b]
             
-            df_port_scheme = df_port_f[df_port_f['scheme_name'] == selected_scheme]
+            # Calculate sector overlap percentage
+            sect_a = df_port_a.groupby('sector')['weight_pct'].sum().reset_index(name='weight_A')
+            sect_b = df_port_b.groupby('sector')['weight_pct'].sum().reset_index(name='weight_B')
             
-            c1, c2 = st.columns([1, 1])
-            with c1:
-                st.markdown(f"### Top Stock Holdings in {selected_scheme}")
-                df_port_table = df_port_scheme[['stock_name', 'stock_symbol', 'weight_pct', 'market_value_cr', 'current_price_inr']]
-                df_port_table = df_port_table.sort_values(by='weight_pct', ascending=False)
-                df_port_table = df_port_table.rename(columns={
-                    'stock_name': 'Stock Name',
-                    'stock_symbol': 'Ticker',
-                    'weight_pct': 'Weight (%)',
-                    'market_value_cr': 'Market Value (Cr)',
-                    'current_price_inr': 'Current Price (INR)'
-                })
-                st.dataframe(df_port_table.reset_index(drop=True), use_container_width=True)
-                
-            with c2:
-                st.markdown("### Sector Allocation Weights")
-                df_sect_grouped = df_port_scheme.groupby('sector')['weight_pct'].sum().reset_index()
-                df_sect_grouped = df_sect_grouped.sort_values(by='weight_pct', ascending=False)
-                
-                fig_sect = px.bar(
-                    df_sect_grouped,
-                    x='weight_pct',
-                    y='sector',
-                    orientation='h',
-                    labels={'weight_pct': 'Sector Weight (%)', 'sector': 'Sector'},
-                    color='weight_pct',
-                    color_continuous_scale="gnbu"
-                )
-                fig_sect.update_layout(template="plotly_white", coloraxis_showscale=False)
-                fig_sect.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig_sect, use_container_width=True)
-                
+            sect_merge = pd.merge(sect_a, sect_b, on='sector', how='outer').fillna(0)
+            sect_merge['overlap'] = sect_merge[['weight_A', 'weight_B']].min(axis=1)
+            total_overlap = sect_merge['overlap'].sum()
+            
+            st.markdown(f"<h3 style='text-align: center; color: #1a73e8;'>Portfolio Sector Overlap: {total_overlap:.2f}%</h3>", unsafe_allow_html=True)
+            st.markdown("Overlap measures how correlated their sector exposures are. Higher overlap implies lesser diversification between the two funds.")
+            
             st.divider()
-            # General sector allocation across ALL filtered schemes
-            st.markdown("### General Sector Allocation Across ALL Filtered Schemes")
-            fig_all_sect = plot_sector_allocations(df_port_f)
-            st.plotly_chart(fig_all_sect, use_container_width=True)
+            
+            # Side by side bar charts for sector weightings
+            c_sect_a, c_sect_b = st.columns(2)
+            with c_sect_a:
+                st.markdown(f"### {scheme_a} Sector Allocation")
+                fig_sa = px.bar(sect_a, x='weight_pct', y='sector', orientation='h', color='weight_pct', color_continuous_scale="blues")
+                fig_sa.update_layout(template="plotly_white", coloraxis_showscale=False)
+                fig_sa.update_yaxes(autorange="reversed")
+                st.plotly_chart(fig_sa, use_container_width=True)
+                
+            with c_sect_b:
+                st.markdown(f"### {scheme_b} Sector Allocation")
+                fig_sb = px.bar(sect_b, x='weight_pct', y='sector', orientation='h', color='weight_pct', color_continuous_scale="purples")
+                fig_sb.update_layout(template="plotly_white", coloraxis_showscale=False)
+                fig_sb.update_yaxes(autorange="reversed")
+                st.plotly_chart(fig_sb, use_container_width=True)
 
-    # --- PAGE 6: INVESTOR DEMOGRAPHICS ---
+    # --- PAGE 7: WEALTH GROWTH SIMULATOR ---
+    elif page == "Wealth Growth Simulator":
+        st.markdown("# Compounding Investment Wealth Simulator")
+        st.markdown("Model the long-term compounding effects of regular Systematic Investment Plans (SIP) vs a one-off Lumpsum deposit.")
+        
+        sim_type = st.radio("Choose Simulator Type:", ["SIP (Monthly Investment)", "Lumpsum (One-off Investment)"])
+        
+        c_inputs, c_outputs = st.columns([1, 2])
+        
+        with c_inputs:
+            st.markdown("### Input Investment Parameters")
+            if sim_type == "SIP (Monthly Investment)":
+                monthly_amt = st.number_input("Monthly Contribution (INR):", min_value=500, max_value=1000000, value=5000, step=500)
+                expected_return = st.slider("Expected Annualized Yield (%):", min_value=1.0, max_value=30.0, value=12.0, step=0.5)
+                horizon = st.slider("Investment Horizon (Years):", min_value=1, max_value=40, value=10)
+                
+                # Apply SIP simulator
+                df_sim = calculate_sip_growth(monthly_amt, expected_return, horizon)
+                
+                total_invested = monthly_amt * horizon * 12
+                maturity_val = df_sim['Future_Value'].iloc[-1]
+                wealth_gain = maturity_val - total_invested
+            else:
+                lumpsum_amt = st.number_input("Initial Lumpsum Investment (INR):", min_value=5000, max_value=100000000, value=50000, step=5000)
+                expected_return = st.slider("Expected Annualized Yield (%):", min_value=1.0, max_value=30.0, value=12.0, step=0.5)
+                horizon = st.slider("Investment Horizon (Years):", min_value=1, max_value=40, value=10)
+                
+                # Apply Lumpsum simulator
+                df_sim = calculate_lumpsum_growth(lumpsum_amt, expected_return, horizon)
+                
+                total_invested = lumpsum_amt
+                maturity_val = df_sim['Future_Value'].iloc[-1]
+                wealth_gain = maturity_val - total_invested
+                
+            # Display results metrics
+            st.metric("Total Amount Invested", f"₹ {total_invested:,.2f}")
+            st.metric("Estimated Maturity Value", f"₹ {maturity_val:,.2f}")
+            st.metric("Estimated Wealth Gain", f"₹ {wealth_gain:,.2f}", delta=f"{wealth_gain/total_invested * 100:.1f}% Growth")
+            
+        with c_outputs:
+            st.markdown("### Maturity Wealth Compounding Projection")
+            fig_sim = go.Figure()
+            fig_sim.add_trace(
+                go.Scatter(
+                    x=df_sim['Year'], y=df_sim['Future_Value'],
+                    name="Estimated Maturity Value",
+                    line=dict(color="#1a73e8", width=3)
+                )
+            )
+            fig_sim.add_trace(
+                go.Scatter(
+                    x=df_sim['Year'], y=df_sim['Invested_Amount'],
+                    name="Cumulative Principal Invested",
+                    line=dict(color="#5f6368", width=1.5, dash="dash")
+                )
+            )
+            fig_sim.update_layout(
+                xaxis_title="Timeline (Years)",
+                yaxis_title="Total Value (INR)",
+                template="plotly_white",
+                hovermode="x unified"
+            )
+            st.plotly_chart(fig_sim, use_container_width=True)
+            
+            # Download simulated dataset
+            csv_data = df_sim.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Compounding Table (CSV)",
+                data=csv_data,
+                file_name="compounding_projection.csv",
+                mime="text/csv"
+            )
+
+    # --- PAGE 8: INVESTOR DEMOGRAPHICS ---
     elif page == "Investor Demographics":
         st.markdown("# Investor Demographics & Behavior")
         st.markdown("Detailed profiles of investors, transaction behavior, payment methods, and correlation heatmap.")
@@ -400,7 +712,7 @@ if conn:
             
         st.divider()
         
-        c3, c4 = st.columns([1, 1])
+        c3, c4 = st.columns(2)
         with c3:
             st.markdown("### Transaction Type Volume Distribution")
             df_tx_type = df_tx_f.groupby('transaction_type').size().reset_index(name='count')
@@ -417,7 +729,6 @@ if conn:
             
         with c4:
             st.markdown("### Investor Profile Correlation Heatmap")
-            # Map age group to numeric midpoints
             age_map = {
                 "18-25": 21.5,
                 "26-35": 30.5,
@@ -429,7 +740,6 @@ if conn:
             df_tx_corr['age_midpoint'] = df_tx_corr['age_group'].map(age_map).fillna(35.0)
             
             numeric_df = df_tx_corr[['amount_inr', 'annual_income_lakh', 'age_midpoint']].dropna()
-            
             corr = numeric_df.corr()
             
             fig_heat = px.imshow(
@@ -442,5 +752,6 @@ if conn:
             )
             fig_heat.update_layout(template="plotly_white")
             st.plotly_chart(fig_heat, use_container_width=True)
+
 else:
     st.error("Could not connect to the database. Make sure the database exists.")

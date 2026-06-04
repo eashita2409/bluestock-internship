@@ -5,7 +5,23 @@ html, body, [class*="css"] {
     font-family: 'Outfit', sans-serif;
 }
 
-/* Glassmorphic KPI Cards style */
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 20px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Glassmorphic KPI Cards style (Default Light) */
 .kpi-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,244,248,0.9) 100%);
     border: 1px solid rgba(26, 115, 232, 0.15);
@@ -17,12 +33,13 @@ html, body, [class*="css"] {
     text-align: center;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     margin-bottom: 20px;
+    animation: fadeInUp 0.5s ease-out;
 }
 
 .kpi-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
-    border-color: rgba(26, 115, 232, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 16px 40px 0 rgba(26, 115, 232, 0.12);
+    border-color: rgba(26, 115, 232, 0.35);
 }
 
 .kpi-value {
@@ -42,28 +59,60 @@ html, body, [class*="css"] {
 }
 
 .kpi-icon {
-    font-size: 1.5rem;
-    color: #34a853;
+    font-size: 1.75rem;
     margin-bottom: 8px;
 }
 
 /* Tab styling and spacing */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 10px;
+    gap: 12px;
 }
 
 .stTabs [data-baseweb="tab"] {
-    height: 50px;
+    height: 48px;
     white-space: pre-wrap;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding-left: 20px;
-    padding-right: 20px;
-    border: 1px solid #e9ecef;
+    background-color: #f1f3f4;
+    border-radius: 10px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border: 1px solid #dadce0;
+    font-weight: 500;
+    transition: all 0.25s ease-in-out;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #e8eaed;
 }
 
 .stTabs [aria-selected="true"] {
     background-color: #1a73e8 !important;
     color: white !important;
     font-weight: 700;
+    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+}
+
+/* Sidebar Styling Overrides */
+[data-testid="stSidebar"] {
+    background-color: #f8f9fa;
+    border-right: 1px solid #e8eaed;
+}
+
+/* Dark Mode Specific Overrides */
+.dark-mode-kpi {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35) !important;
+}
+
+.dark-mode-kpi:hover {
+    box-shadow: 0 16px 40px 0 rgba(56, 189, 248, 0.2) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+.dark-mode-value {
+    color: #38bdf8 !important;
+}
+
+.dark-mode-label {
+    color: #94a3b8 !important;
 }
