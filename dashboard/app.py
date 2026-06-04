@@ -571,137 +571,22 @@ if conn:
                     'sharpe_ratio': 'Sharpe', 'aum_crore': 'AUM (Cr)'
                 })
                 st.dataframe(df_comp_show.reset_index(drop=True), use_container_width=True)
-           with c_comp_ch:
+            with c_comp_ch:
+                fig_comp = px.bar(
+                    df_comp,
+                    x='return_3yr_pct',
+                    y='scheme_name',
+                    color='sharpe_ratio',
+                    title="3-Year Annualized Return vs Sharpe Ratio",
+                    labels={
+                        'return_3yr_pct': 'Return %',
+                        'scheme_name': 'Scheme',
+                        'sharpe_ratio': 'Sharpe Ratio'
+                    },
+                    color_continuous_scale="teal"
+                )
 
-    fig_comp = px.bar(
-        df_comp,
-        x='return_3yr_pct',
-        y='scheme_name',
-        color='sharpe_ratio',
-        title="3-Year Annualized Return vs Sharpe Ratio",
-        labels={
-            'return_3yr_pct': 'Return %',
-            'scheme_name': 'Scheme',
-            'sharpe_ratio': 'Sharpe Ratio'
-        },
-        color_continuous_scale="teal"
-    )
-
-    st.plotly_chart(fig_comp, use_container_width=True)
-
-# --- PAGE 6: PORTFOLIO OVERLAPS & SECTORS ---
-elif page == "Portfolio Overlaps & Sectors":
-
-    st.markdown("# Portfolio Holdings Comparison & Sector Overlap Analysis")
-
-    st.markdown(
-        "Compare the stock holdings and sector concentration of two mutual funds side-by-side to compute portfolio sector overlap."
-    )
-
-    schemes = sorted(list(df_port_f['scheme_name'].dropna().unique()))
-
-    if len(schemes) < 2:
-        st.warning("Please reset your global filters to allow at least 2 schemes for comparison.")
-
-    else:
-
-        col_a, col_b = st.columns(2)
-
-        with col_a:
-            scheme_a = st.selectbox("Select Scheme A:", schemes, index=0)
-
-        with col_b:
-            scheme_b = st.selectbox(
-                "Select Scheme B:",
-                schemes,
-                index=min(1, len(schemes) - 1)
-            )
-
-        df_port_a = df_port_f[df_port_f['scheme_name'] == scheme_a]
-        df_port_b = df_port_f[df_port_f['scheme_name'] == scheme_b]
-
-        # Calculate sector overlap percentage
-        sect_a = (
-            df_port_a.groupby('sector')['weight_pct']
-            .sum()
-            .reset_index(name='weight_A')
-        )
-
-        sect_b = (
-            df_port_b.groupby('sector')['weight_pct']
-            .sum()
-            .reset_index(name='weight_B')
-        )
-
-        sect_merge = pd.merge(
-            sect_a,
-            sect_b,
-            on='sector',
-            how='outer'
-        ).fillna(0)
-
-        sect_merge['overlap'] = sect_merge[['weight_A', 'weight_B']].min(axis=1)
-
-        total_overlap = sect_merge['overlap'].sum()
-
-        st.markdown(
-            f"<h3 style='text-align: center; color: #1a73e8;'>Portfolio Sector Overlap: {total_overlap:.2f}%</h3>",
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            "Overlap measures how correlated their sector exposures are. "
-            "Higher overlap implies lesser diversification between the two funds."
-        )
-
-        st.divider()
-
-        # Side by side bar charts for sector weightings
-        c_sect_a, c_sect_b = st.columns(2)
-
-        with c_sect_a:
-
-            st.markdown(f"### {scheme_a} Sector Allocation")
-
-            fig_sa = px.bar(
-                sect_a,
-                x='weight_A',
-                y='sector',
-                orientation='h',
-                color='weight_A',
-                color_continuous_scale="blues"
-            )
-
-            fig_sa.update_layout(
-                template="plotly_white",
-                coloraxis_showscale=False
-            )
-
-            fig_sa.update_yaxes(autorange="reversed")
-
-            st.plotly_chart(fig_sa, use_container_width=True)
-
-        with c_sect_b:
-
-            st.markdown(f"### {scheme_b} Sector Allocation")
-
-            fig_sb = px.bar(
-                sect_b,
-                x='weight_B',
-                y='sector',
-                orientation='h',
-                color='weight_B',
-                color_continuous_scale="greens"
-            )
-
-            fig_sb.update_layout(
-                template="plotly_white",
-                coloraxis_showscale=False
-            )
-
-            fig_sb.update_yaxes(autorange="reversed")
-
-            st.plotly_chart(fig_sb, use_container_width=True)
+                st.plotly_chart(fig_comp, use_container_width=True)
     # --- PAGE 6: PORTFOLIO OVERLAPS & SECTORS ---
     elif page == "Portfolio Overlaps & Sectors":
         st.markdown("# Portfolio Holdings Comparison & Sector Overlap Analysis")
@@ -811,8 +696,8 @@ elif page == "Portfolio Overlaps & Sectors":
                 fig_sb.update_yaxes(autorange="reversed")
 
                 st.plotly_chart(fig_sb, use_container_width=True)
-# --- PAGE 7: WEALTH GROWTH SIMULATOR ---
-    if page == "Wealth Growth Simulator":
+    # --- PAGE 7: WEALTH GROWTH SIMULATOR ---
+    elif page == "Wealth Growth Simulator":
         st.markdown("# Compounding Investment Wealth Simulator")
         st.markdown("Model the long-term compounding effects of regular Systematic Investment Plans (SIP) vs a one-off Lumpsum deposit.")
         
@@ -942,5 +827,5 @@ elif page == "Portfolio Overlaps & Sectors":
             fig_heat.update_layout(template="plotly_white")
             st.plotly_chart(fig_heat, use_container_width=True)
 
-if False:
+else:
     st.error("Could not connect to the database. Make sure the database exists.")
