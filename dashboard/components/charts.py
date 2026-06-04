@@ -63,24 +63,40 @@ def plot_sip_inflows(df_sip: pd.DataFrame):
             marker=dict(size=8),
             hovertemplate="₹%{y:,} Crore"
         )
-    )
-    
-    fig.update_layout(
-        title="Industry SIP Inflows & Active Accounts Trend",
-        xaxis=dict(title="Month", tickangle=45),
-        yaxis=dict(title="SIP Inflows (INR Crore)", titlefont=dict(color="#1a73e8"), tickfont=dict(color="#1a73e8")),
-        yaxis2=dict(
-            title="Active SIP Accounts (Crore)",
-            titlefont=dict(color="#34a853"),
-            tickfont=dict(color="#34a853"),
-            overlaying="y",
-            side="right"
+  fig.update_layout(
+    title="Industry SIP Inflows & Active Accounts Trend",
+    xaxis=dict(title="Month", tickangle=45),
+
+    yaxis=dict(
+        title=dict(
+            text="SIP Inflows (INR Crore)",
+            font=dict(color="#1a73e8")
         ),
-        template="plotly_white",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=40, r=40, t=80, b=40)
-    )
-    return fig
+        tickfont=dict(color="#1a73e8")
+    ),
+
+    yaxis2=dict(
+        title=dict(
+            text="Active SIP Accounts (Crore)",
+            font=dict(color="#34a853")
+        ),
+        tickfont=dict(color="#34a853"),
+        overlaying="y",
+        side="right"
+    ),
+
+    template="plotly_white",
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ),
+    margin=dict(l=40, r=40, t=80, b=40)
+)
+
+return fig
 
 def plot_risk_return(df_perf: pd.DataFrame):
     """Generates an interactive risk (volatility) vs return scatter plot."""
