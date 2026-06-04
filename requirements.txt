@@ -1,0 +1,19 @@
+# Data Manipulation & Math
+pandas
+numpy
+
+# Statistical Analysis & Math Formulas
+scipy
+
+# Visualizations & Charts
+matplotlib
+seaborn
+
+# Fetching financial data from online APIs
+requests
+
+# Running Python kernels inside Jupyter Notebooks
+ipykernel
+
+# Testing framework
+pytest

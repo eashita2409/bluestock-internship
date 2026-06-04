@@ -1,0 +1,5 @@
+payment_mode,transaction_count,total_amount_inr,transaction_pct
+Net Banking,8250,893492623.0,25.17
+Cheque,8228,892219218.0,25.1
+UPI,8154,888241021.0,24.88
+Mandate,8146,847627568.0,24.85
