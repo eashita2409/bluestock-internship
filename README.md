@@ -11,7 +11,10 @@ An enterprise-grade, high-performance financial analytics and visualization plat
 
 ---
 
-## 🔗 Project Links
+> **🔄 Deployment Note:** The SQLite database (`data/db/mutual_fund_analytics.db`) is **not committed to git** (it is excluded by `.gitignore` to avoid tracking large binary files). On first launch — including every fresh **Streamlit Cloud** deployment — the dashboard automatically rebuilds the database from the tracked CSV files in `data/processed/` using `sql/schema.sql`. No manual action is required.
+
+---
+
 
 *   **Live Streamlit Deployment:** `[Insert Streamlit Deployment URL Here]` *(e.g., https://share.streamlit.io/eashita2409/bluestock-internship/main/dashboard/app.py)*
 *   **Walkthrough Demo Video:** `[Insert Demo Video Link Here]` *(e.g., YouTube/Loom link)*
@@ -206,7 +209,7 @@ bluestock-internship/
 │   ├── raw/                       # Raw source CSV files & live JSON API outputs
 │   ├── processed/                 # Cleaned and standardized CSV datasets
 │   └── db/
-│       └── mutual_fund_analytics.db # SQLite relational database
+│       └── mutual_fund_analytics.db # SQLite DB — auto-generated on first run (not in git)
 ├── src/
 │   ├── __init__.py
 │   ├── utils.py                   # Dynamic path resolvers & CSV loader utilities
@@ -290,6 +293,7 @@ python scripts/data_ingestion.py
 python scripts/data_cleaning.py
 
 # 3. Load SQLite schemas and populate tables
+#    (The dashboard also runs this automatically on first startup if the .db is missing)
 python scripts/database_loading.py
 
 # 4. Run database verification and constraint checks

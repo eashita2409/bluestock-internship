@@ -9,6 +9,10 @@ if str(project_root) not in sys.path:
 if str(dashboard_dir) not in sys.path:
     sys.path.insert(0, str(dashboard_dir))
 
+# Auto-initialize database from tracked CSV files if the .db is absent
+# (handles fresh Streamlit Cloud deployments where .db is not committed to git)
+from scripts.initialize_database import initialize_database
+
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -55,10 +59,35 @@ db_path = Path(__file__).resolve().parent.parent / "data" / "db" / "mutual_fund_
 
 @st.cache_resource
 def get_db_connection():
-    """Establishes connection to the database."""
+    """
+    Returns a cached SQLite connection.
+
+    If the database file does not exist (e.g. fresh Streamlit Cloud deployment),
+    initialize_database() is called first to auto-build it from the processed
+    CSV files and sql/schema.sql that ARE tracked in git.
+    """
     if not db_path.exists():
-        st.error(f"Database not found at {db_path}. Please check configuration.")
-        return None
+        try:
+            with st.spinner(
+                "⚙️ First-time setup: building database from CSV sources "
+                "(this takes ~30 seconds) …"
+            ):
+                initialize_database()
+        except FileNotFoundError as exc:
+            st.error(
+                f"**Database auto-initialization failed — missing source files.**\n\n"
+                f"`{exc}`\n\n"
+                "Please ensure `data/processed/` CSV files and `sql/schema.sql` "
+                "are committed to the repository."
+            )
+            return None
+        except Exception as exc:
+            st.error(
+                f"**Database auto-initialization encountered an error.**\n\n"
+                f"`{exc}`"
+            )
+            return None
+
     conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
@@ -1008,4 +1037,7 @@ if conn:
             render_chart(fig_heat)
 
 else:
-    st.error("Could not connect to the database. Make sure the database exists.")
+    st.error(
+        "Could not connect to the database. "
+        "Ensure `data/processed/` CSV files and `sql/schema.sql` are present in the repository."
+    )
