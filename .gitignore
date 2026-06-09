@@ -1,16 +1,55 @@
-# Byte-compiled / optimized / DLL files
+# ============================================================
+# Bluestock Mutual Fund Analytics — .gitignore
+# ============================================================
+
+# ------------------------------
+# Python bytecode / cache
+# ------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
 
-# C extensions
-*.so
-
-# Distribution / packaging
+# ------------------------------
+# Virtual Environments
+# ------------------------------
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 .Python
+
+# ------------------------------
+# Database files (keep schema.sql, ignore *.db)
+# ------------------------------
+*.db
+*.sqlite
+*.sqlite3
+data/db/
+
+# ------------------------------
+# Testing & Coverage
+# ------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# ------------------------------
+# Distribution / Packaging
+# ------------------------------
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -26,39 +65,49 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-/*.manifest
-/*.spec
+# ------------------------------
+# Jupyter Notebook checkpoints
+# ------------------------------
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
-# Installer logs
+# ------------------------------
+# Logs & temporary files
+# ------------------------------
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nosenv/
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-poetry.lock
-pipfile.lock
+# ------------------------------
+# OS generated files
+# ------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# ------------------------------
+# Node / JavaScript
+# ------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE settings
+# ------------------------------
+# IDE / Editor settings
+# ------------------------------
 .vscode/
 .idea/
 *.suo
@@ -66,3 +115,27 @@ venv.bak/
 *.njsproj
 *.sln
 *.sw?
+
+# ------------------------------
+# PyInstaller
+# ------------------------------
+*.manifest
+*.spec
+
+# ------------------------------
+# Lock files (optional — keep these if using pip-tools)
+# ------------------------------
+# poetry.lock
+# Pipfile.lock
+
+# ------------------------------
+# Environment variable files
+# ------------------------------
+.env
+.env.local
+.env.*.local
+
+# ------------------------------
+# C extensions
+# ------------------------------
+*.so
