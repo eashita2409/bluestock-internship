@@ -139,3 +139,11 @@ yarn-error.log*
 # C extensions
 # ------------------------------
 *.so
+
+# ------------------------------
+# Dataset archives (large binary files — not committed)
+# ------------------------------
+*.zip
+*.zip.zip
+*.tar.gz
+*.rar
